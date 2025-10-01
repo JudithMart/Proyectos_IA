@@ -1,0 +1,23 @@
+# Opción 1: Crear matriz desde entrada del usuario
+matriz_input = input("Ingresa los numeros de tu matriz separados por comas: ")
+# Convertir la entrada en una lista de números
+numeros = [int(x.strip()) for x in matriz_input.split(",")]
+
+# Crear una matriz cuadrada (ejemplo: si ingresas 4 números, será 2x2)
+import math
+tamaño = int(math.sqrt(len(numeros)))
+if tamaño * tamaño == len(numeros):
+    matriz = []
+    for i in range(tamaño):
+        fila = []
+        for j in range(tamaño):
+            fila.append(numeros[i * tamaño + j])
+        matriz.append(fila)
+    print("Matriz creada:")
+    for fila in matriz:
+        print(fila)
+else:
+    print("Error: El número de elementos no forma una matriz cuadrada perfecta")
+
+# Ahora puedes crear el tablero basado en la matriz
+tablero = [" " for _ in range(len(numeros))]
