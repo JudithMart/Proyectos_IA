@@ -1,23 +1,140 @@
-# Opción 1: Crear matriz desde entrada del usuario
-matriz_input = input("Ingresa los numeros de tu matriz separados por comas: ")
-# Convertir la entrada en una lista de números
-numeros = [int(x.strip()) for x in matriz_input.split(",")]
-
-# Crear una matriz cuadrada (ejemplo: si ingresas 4 números, será 2x2)
+import heapq
 import math
-tamaño = int(math.sqrt(len(numeros)))
-if tamaño * tamaño == len(numeros):
-    matriz = []
-    for i in range(tamaño):
-        fila = []
-        for j in range(tamaño):
-            fila.append(numeros[i * tamaño + j])
-        matriz.append(fila)
-    print("Matriz creada:")
-    for fila in matriz:
-        print(fila)
-else:
-    print("Error: El número de elementos no forma una matriz cuadrada perfecta")
+import random
+from colorama import Fore, Style, init
 
-# Ahora puedes crear el tablero basado en la matriz
-tablero = [" " for _ in range(len(numeros))]
+init(autoreset=True)
+
+class Nodo:
+    def __init__(self, x, y, g=0, h=0, padre=None):
+        self.x = x
+        self.y = y
+        self.g = g
+        self.h = h
+        self.padre = padre
+
+    @property
+    def f(self):
+        return self.g + self.h
+
+    def __lt__(self, other):
+        return self.f < other.f
+
+def heuristica(a, b):
+    """Distancia Euclidiana (para diagonales)"""
+    return math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
+
+def generar_tablero(n, inicio, meta, num_obstaculos):
+    """Genera tablero con pesos aleatorios y obstáculos"""
+    max_peso = n * n
+    tablero = [[random.randint(1, max_peso) for _ in range(n)] for _ in range(n)]
+
+    libres = [(i, j) for i in range(n) for j in range(n) if (i, j) not in [inicio, meta]]
+    obstaculos = random.sample(libres, k=num_obstaculos)
+
+    for (i, j) in obstaculos:
+        tablero[i][j] = -1
+
+    return tablero
+
+def mostrar_tablero(tablero, inicio, meta, camino=[]):
+    """Imprime tablero con colores"""
+    for i in range(len(tablero)):
+        fila = ""
+        for j in range(len(tablero)):
+            if (i, j) == inicio:
+                fila += Fore.GREEN + " S " + Style.RESET_ALL
+            elif (i, j) == meta:
+                fila += Fore.RED + " M " + Style.RESET_ALL
+            elif (i, j) in camino:
+                fila += Fore.CYAN + " * " + Style.RESET_ALL
+            elif tablero[i][j] == -1:
+                fila += Fore.MAGENTA + " X " + Style.RESET_ALL
+            else:
+                fila += f"{tablero[i][j]:2d} "
+        print(fila)
+    print()
+
+def a_star(tablero, inicio, meta):
+    n = len(tablero)
+    inicio_nodo = Nodo(*inicio)
+    meta_nodo = Nodo(*meta)
+
+    abiertos = []
+    heapq.heappush(abiertos, inicio_nodo)
+    cerrados = set()
+
+    # 8 movimientos posibles (incluye diagonales)
+    movimientos = [
+        (-1, 0), (1, 0), (0, -1), (0, 1),
+        (-1, -1), (-1, 1), (1, -1), (1, 1)
+    ]
+
+    while abiertos:
+        actual = heapq.heappop(abiertos)
+
+        print(f"\nExpandiendo nodo ({actual.x},{actual.y}) g={actual.g}, h={actual.h:.2f}, f={actual.f:.2f}")
+
+        if (actual.x, actual.y) == (meta_nodo.x, meta_nodo.y):
+            camino = []
+            while actual:
+                camino.append((actual.x, actual.y))
+                actual = actual.padre
+            return camino[::-1]
+
+        cerrados.add((actual.x, actual.y))
+
+        for dx, dy in movimientos:
+            x, y = actual.x + dx, actual.y + dy
+            if 0 <= x < n and 0 <= y < n and tablero[x][y] != -1:
+                if (x,y) in cerrados:
+                    continue
+                # costo del movimiento (diagonal más caro)
+                factor = math.sqrt(2) if dx != 0 and dy != 0 else 1
+                g = actual.g + tablero[x][y] * factor
+                h = heuristica(Nodo(x,y), meta_nodo)
+                vecino = Nodo(x,y,g,h,actual)
+                print(f"  Vecino ({x},{y}) -> g={g:.2f}, h={h:.2f}, f={g+h:.2f}")
+                heapq.heappush(abiertos, vecino)
+
+    return None
+
+if __name__ == "__main__":
+    n = int(input("Ingrese tamaño del tablero (n x n): "))
+    num_obstaculos = int(input("Ingrese el número de celdas cerradas: "))
+
+    inicio = tuple(map(int, input("Ingrese coordenadas de salida (ejemplo: 0 3): ").split()))
+    meta = tuple(map(int, input("Ingrese coordenadas de meta (ejemplo: 3 0): ").split()))
+
+    tablero = generar_tablero(n, inicio, meta, num_obstaculos)
+
+    print("\nTablero generado (X = obstáculo, S = salida, M = meta):")
+    mostrar_tablero(tablero, inicio, meta)
+
+    camino = a_star(tablero, inicio, meta)
+
+    if camino:
+        print("\nCamino encontrado:")
+        mostrar_tablero(tablero, inicio, meta, camino)
+        print("Ruta:", camino)
+    else:
+        print("No hay camino disponible.")
+
+
+
+
+# la casilla meta, no puede ser una casilla cerrada.
+# Marcar de diferente manera la meta con una bandera o algo así 
+# 
+# Marcar al final el camino por otro color o algo así
+#Suma total del camino
+#
+# Coordenas de salida a la meta   S(0,3) M(3,0)
+#calcula la mejor ruta CONSIDERANDO LOS PESOS DE CADA CASILLA SIN CONSIDERAR LAS CASILLAS CERRADAS
+
+# Tablero generado (X = obstáculo, S = salida, M = meta):
+# 25 13  9  X  3 
+# 12  M 10  X  7 
+#  4  7  X  20  X 
+# 10 22  8  X  15 
+#  X 11  X  X  S 
