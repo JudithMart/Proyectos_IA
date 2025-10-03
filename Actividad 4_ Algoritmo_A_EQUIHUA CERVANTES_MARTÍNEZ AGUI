@@ -1,125 +1,136 @@
-import heapq
-import math
 import random
+import math
 from colorama import Fore, Style, init
 
 init(autoreset=True)
 
-class Nodo:
-    def __init__(self, x, y, g=0, h=0, padre=None):
-        self.x = x
-        self.y = y
-        self.g = g
-        self.h = h
-        self.padre = padre
+# ===============================
+# Funciones auxiliares
+# ===============================
 
-    @property
-    def f(self):
-        return self.g + self.h
+def generar_tablero(filas, columnas, num_celdas_cerradas):
+    tablero = [[random.randint(1, filas*columnas) for _ in range(columnas)] for _ in range(filas)]
 
-    def __lt__(self, other):
-        return self.f < other.f
+    cerradas = set()
+    while len(cerradas) < num_celdas_cerradas:
+        x, y = random.randint(0, filas-1), random.randint(0, columnas-1)
+        cerradas.add((x, y))
 
-def heuristica(a, b):
-    """Distancia Euclidiana (para diagonales)"""
-    return math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
+    for (x, y) in cerradas:
+        tablero[x][y] = "X"
 
-def generar_tablero(n, inicio, meta, num_obstaculos):
-    """Genera tablero con pesos aleatorios y obstáculos"""
-    max_peso = n * n
-    tablero = [[random.randint(1, max_peso) for _ in range(n)] for _ in range(n)]
+    return tablero, cerradas
 
-    libres = [(i, j) for i in range(n) for j in range(n) if (i, j) not in [inicio, meta]]
-    obstaculos = random.sample(libres, k=num_obstaculos)
-
-    for (i, j) in obstaculos:
-        tablero[i][j] = -1
-
-    return tablero
-
-def mostrar_tablero(tablero, inicio, meta, camino=[]):
-    """Imprime tablero con colores"""
-    for i in range(len(tablero)):
-        fila = ""
-        for j in range(len(tablero)):
+def imprimir_tablero(tablero, inicio, meta, camino=None):
+    filas, columnas = len(tablero), len(tablero[0])
+    for i in range(filas):
+        fila = []
+        for j in range(columnas):
             if (i, j) == inicio:
-                fila += Fore.GREEN + " S " + Style.RESET_ALL
+                fila.append(Fore.BLUE + "S" + Style.RESET_ALL)
             elif (i, j) == meta:
-                fila += Fore.RED + " M " + Style.RESET_ALL
-            elif (i, j) in camino:
-                fila += Fore.CYAN + " * " + Style.RESET_ALL
-            elif tablero[i][j] == -1:
-                fila += Fore.MAGENTA + " X " + Style.RESET_ALL
+                fila.append(Fore.YELLOW + "M" + Style.RESET_ALL)
+            elif camino and (i, j) in camino:
+                fila.append(Fore.GREEN + "*" + Style.RESET_ALL)
+            elif tablero[i][j] == "X":
+                fila.append(Fore.RED + "X" + Style.RESET_ALL)
             else:
-                fila += f"{tablero[i][j]:2d} "
-        print(fila)
+                fila.append(str(tablero[i][j]))
+        print("\t".join(fila))
     print()
 
+def heuristica(a, b):
+    # Distancia euclidiana
+    return math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2)
+
+def vecinos(filas, columnas, pos):
+    direcciones = [(-1,0),(1,0),(0,-1),(0,1), (-1,-1),(-1,1),(1,-1),(1,1)]
+    for dx, dy in direcciones:
+        x2, y2 = pos[0]+dx, pos[1]+dy
+        if 0 <= x2 < filas and 0 <= y2 < columnas:
+            yield (x2, y2)
+
+# ===============================
+# Algoritmo A*
+# ===============================
+
 def a_star(tablero, inicio, meta):
-    n = len(tablero)
-    inicio_nodo = Nodo(*inicio)
-    meta_nodo = Nodo(*meta)
-
-    abiertos = []
-    heapq.heappush(abiertos, inicio_nodo)
+    filas, columnas = len(tablero), len(tablero[0])
+    abiertos = {inicio}
     cerrados = set()
+    padres = {}
 
-    # 8 movimientos posibles (incluye diagonales)
-    movimientos = [
-        (-1, 0), (1, 0), (0, -1), (0, 1),
-        (-1, -1), (-1, 1), (1, -1), (1, 1)
-    ]
+    g = {inicio: 0}
+    f = {inicio: heuristica(inicio, meta)}
 
     while abiertos:
-        actual = heapq.heappop(abiertos)
+        actual = min(abiertos, key=lambda x: f.get(x, float("inf")))
 
-        print(f"\nExpandiendo nodo ({actual.x},{actual.y}) g={actual.g}, h={actual.h:.2f}, f={actual.f:.2f}")
-
-        if (actual.x, actual.y) == (meta_nodo.x, meta_nodo.y):
+        if actual == meta:
             camino = []
-            while actual:
-                camino.append((actual.x, actual.y))
-                actual = actual.padre
-            return camino[::-1]
+            while actual in padres:
+                camino.append(actual)
+                actual = padres[actual]
+            camino.append(inicio)
+            camino.reverse()
+            return camino
 
-        cerrados.add((actual.x, actual.y))
+        abiertos.remove(actual)
+        cerrados.add(actual)
 
-        for dx, dy in movimientos:
-            x, y = actual.x + dx, actual.y + dy
-            if 0 <= x < n and 0 <= y < n and tablero[x][y] != -1:
-                if (x,y) in cerrados:
-                    continue
-                # costo del movimiento (diagonal más caro)
-                factor = math.sqrt(2) if dx != 0 and dy != 0 else 1
-                g = actual.g + tablero[x][y] * factor
-                h = heuristica(Nodo(x,y), meta_nodo)
-                vecino = Nodo(x,y,g,h,actual)
-                print(f"  Vecino ({x},{y}) -> g={g:.2f}, h={h:.2f}, f={g+h:.2f}")
-                heapq.heappush(abiertos, vecino)
+        print(f"\nExpandiendo nodo {actual}:")
+        for vecino in vecinos(filas, columnas, actual):
+            if tablero[vecino[0]][vecino[1]] == "X" or vecino in cerrados:
+                continue
+
+            peso = tablero[vecino[0]][vecino[1]]
+            tentativo_g = g[actual] + peso
+
+            if vecino not in abiertos or tentativo_g < g.get(vecino, float("inf")):
+                padres[vecino] = actual
+                g[vecino] = tentativo_g
+                h = heuristica(vecino, meta)
+                f[vecino] = g[vecino] + h
+                abiertos.add(vecino)
+
+                print(f"  Vecino {vecino} con peso={peso}")
+                print(f"    g({vecino}) = {g[vecino]}")
+                print(f"    h({vecino}) = sqrt(({vecino[0]}-{meta[0]})²+({vecino[1]}-{meta[1]})²) = {h:.2f}")
+                print(f"    f({vecino}) = g+h = {f[vecino]:.2f}")
 
     return None
 
-if __name__ == "__main__":
-    n = int(input("Ingrese tamaño del tablero (n x n): "))
-    num_obstaculos = int(input("Ingrese el número de celdas cerradas: "))
+# ===============================
+# MAIN
+# ===============================
 
-    inicio = tuple(map(int, input("Ingrese coordenadas de salida (ejemplo: 0 3): ").split()))
-    meta = tuple(map(int, input("Ingrese coordenadas de meta (ejemplo: 3 0): ").split()))
+filas = int(input("Número de filas del tablero: "))
+columnas = int(input("Número de columnas del tablero: "))
+num_cerradas = int(input("Número de celdas cerradas: "))
 
-    tablero = generar_tablero(n, inicio, meta, num_obstaculos)
+tablero, cerradas = generar_tablero(filas, columnas, num_cerradas)
 
-    print("\nTablero generado (X = obstáculo, S = salida, M = meta):")
-    mostrar_tablero(tablero, inicio, meta)
+print("\n=== Tablero inicial ===")
+imprimir_tablero(tablero, (-1,-1), (-1,-1))  # aún sin inicio/meta
 
-    camino = a_star(tablero, inicio, meta)
+sx, sy = map(int, input("Coordenadas de salida (fila col): ").split())
+mx, my = map(int, input("Coordenadas de meta (fila col): ").split())
 
-    if camino:
-        print("\nCamino encontrado:")
-        mostrar_tablero(tablero, inicio, meta, camino)
-        print("Ruta:", camino)
-    else:
-        print("No hay camino disponible.")
+while tablero[mx][my] == "X":
+    print("La meta no puede ser una celda cerrada. Elige otra.")
+    mx, my = map(int, input("Coordenadas de meta (fila col): ").split())
 
+inicio = (sx, sy)
+meta = (mx, my)
+
+camino = a_star(tablero, inicio, meta)
+
+print("\n=== Resultado ===")
+if camino:
+    imprimir_tablero(tablero, inicio, meta, camino)
+    print("Camino encontrado:", camino)
+else:
+    print("No existe camino posible")
 
 
 
