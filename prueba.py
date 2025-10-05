@@ -12,7 +12,8 @@ def greedy_no_acumulable_con_backtracking(
     meta,
     permitir_diagonales=True,
     evitar_cortes_esquina=False,
-    mostrar_minitablero=True,
+    mostrar_minitablero=True, 
+    parar_si_meta_vecina=True,
 ):
     filas, cols = len(tablero), len(tablero[0])
 
@@ -69,6 +70,22 @@ def greedy_no_acumulable_con_backtracking(
         # descarta vecinos ya en el camino actual (evita ciclos)
         while cand and cand[0] in en_camino:
             cand.pop(0)
+
+        if parar_si_meta_vecina and meta in cand:
+            # Log como el de tus vecinos
+            peso = tablero[meta[1]][meta[0]]
+            h = 0.0
+            print(f"  Vecino {meta} con peso={peso}")
+            print(f"    g({meta}) = {peso}")
+            print(f"    h({meta}) = sqrt(({meta[0]}-{meta[0]})²+({meta[1]}-{meta[1]})²) = {h:.2f}")
+            print(f"    f({meta}) = g+h = {peso}+{h:.2f} = {peso+h:.2f}")
+            en_camino.add(meta)
+            pila.append((meta, []))
+            pintar_estado("→ Tablero tras avanzar (meta vecina):")
+            print(f"\nEstoy en  {meta}:")
+            # Siguiente iteración devolverá el camino
+            continue
+
 
         if not cand:
             # CALLEJÓN SIN SALIDA -> backtrack
