@@ -16,7 +16,7 @@ def buscar_camino(
     parar_si_meta_vecina=True,
 ):
     filas, cols = len(tablero), len(tablero[0])
-
+    visitados = set()
     def es_bloqueada(p):
         return tablero[p[1]][p[0]] == "X"
 
@@ -62,13 +62,15 @@ def buscar_camino(
 
     while pila:
         actual, cand = pila[-1]
+        visitados.add(actual)
 
         if actual == meta:
             # reconstruye desde la pila
             return [n for n, _ in pila]
 
         # descarta vecinos ya en el camino actual (evita ciclos)
-        while cand and cand[0] in en_camino:
+        while cand and (cand[0] in en_camino or cand[0] in visitados):
+
             cand.pop(0)
 
         if parar_si_meta_vecina and meta in cand:
@@ -112,6 +114,14 @@ def buscar_camino(
         pila.append((siguiente, ordenar_vecinos(siguiente)))
         pintar_estado("Tablero tras avanzar:")
         print(f"\nEstoy en  {siguiente}:")
+
+        contador = 0
+        # while pila:
+        #     contador += 1
+        #     if contador > 10000:
+        #          print(" Límite de iteraciones alcanzado. Posible ciclo o sin solución.")
+        #          return None
+
     return None
 
 
