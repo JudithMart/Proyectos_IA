@@ -16,19 +16,20 @@ def buscar_camino(
     parar_si_meta_vecina=True,
 ):
     filas, cols = len(tablero), len(tablero[0])
+    visitados = set()  
 
     def es_bloqueada(p):
         return tablero[p[1]][p[0]] == "X"
 
-    # Usa tus vecinos pero filtrando según configuración
+    
     def vecinos_local(p):
         x, y = p
         for v in vecinos(filas, cols, p):
             if not permitir_diagonales:
-                # descarta diagonales
+              
                 if v[0] != x and v[1] != y:
                     continue
-            # Evitar "corner cutting": si diagonal y ambos ortogonales bloqueados, descarta
+            
             if evitar_cortes_esquina and (v[0] != x and v[1] != y):
                 if tablero[y][v[0]] == "X" and tablero[v[1]][x] == "X":
                     continue
@@ -39,14 +40,14 @@ def buscar_camino(
         for v in vecinos_local(p):
             if es_bloqueada(v):
                 continue
-            g = tablero[v[1]][v[0]]         # g no acumulativo
+            g = tablero[v[1]][v[0]]        
             h = heuristica(v, meta)
             cand.append((g + h, h, g, v))
-        # Orden: f, luego h (más cerca a meta), luego g (más barato entrar)
+       
         cand.sort(key=lambda t: (t[0], t[1], t[2]))
         return [v for _, _, _, v in cand]
 
-    # Pila de (nodo_actual, vecinos_pendientes_ordenados)
+  
     pila = [(inicio, ordenar_vecinos(inicio))]
     en_camino = {inicio}
 
@@ -62,17 +63,18 @@ def buscar_camino(
 
     while pila:
         actual, cand = pila[-1]
+        visitados.add(actual)
 
         if actual == meta:
-            # reconstruye desde la pila
+           
             return [n for n, _ in pila]
 
-        # descarta vecinos ya en el camino actual (evita ciclos)
-        while cand and cand[0] in en_camino:
-            cand.pop(0)
+      
+        while cand and (cand[0] in en_camino or cand[0] in visitados):
+         cand.pop(0)
 
         if parar_si_meta_vecina and meta in cand:
-            # Log como el de tus vecinos
+           
             peso = tablero[meta[1]][meta[0]]
             h = 0.0
             print(f"  Vecino {meta} con peso={peso}")
@@ -83,12 +85,12 @@ def buscar_camino(
             pila.append((meta, []))
             pintar_estado("Tablero tras avanzar (meta vecina):")
             print(f"\nEstoy en  {meta}:")
-            # Siguiente iteración devolverá el camino
+            
             continue
 
 
         if not cand:
-            # CALLEJÓN SIN SALIDA -> backtrack
+           
             salgo, _ = pila.pop()
             en_camino.remove(salgo)
             if pila:
@@ -99,7 +101,7 @@ def buscar_camino(
 
         siguiente = cand.pop(0)
 
-        # Log de evaluación local
+      
         peso = tablero[siguiente[1]][siguiente[0]]
         h = heuristica(siguiente, meta)
         print(f"  Vecino {siguiente} con peso={peso}")
@@ -107,7 +109,7 @@ def buscar_camino(
         print(f"    h({siguiente}) = sqrt(({siguiente[0]}-{meta[0]})²+({siguiente[1]}-{meta[1]})²) = {h:.2f}")
         print(f"    f({siguiente}) = g+h = {peso}+{h:.2f} = {peso+h:.2f}")
 
-        # Avanzar
+      
         en_camino.add(siguiente)
         pila.append((siguiente, ordenar_vecinos(siguiente)))
         pintar_estado("Tablero tras avanzar:")
