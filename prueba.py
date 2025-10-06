@@ -6,7 +6,7 @@ init(autoreset=True)
 
 
 
-def greedy_no_acumulable_con_backtracking(
+def buscar_camino(
     tablero,
     inicio,
     meta,
@@ -58,7 +58,7 @@ def greedy_no_acumulable_con_backtracking(
         imprimir_tablero(tablero, inicio, meta, camino_actual)
 
     print(f"\nEstoy en  {inicio}:")
-    pintar_estado("→ Tablero (inicio):")
+    pintar_estado("Tablero (inicio):")
 
     while pila:
         actual, cand = pila[-1]
@@ -81,7 +81,7 @@ def greedy_no_acumulable_con_backtracking(
             print(f"    f({meta}) = g+h = {peso}+{h:.2f} = {peso+h:.2f}")
             en_camino.add(meta)
             pila.append((meta, []))
-            pintar_estado("→ Tablero tras avanzar (meta vecina):")
+            pintar_estado("Tablero tras avanzar (meta vecina):")
             print(f"\nEstoy en  {meta}:")
             # Siguiente iteración devolverá el camino
             continue
@@ -93,7 +93,7 @@ def greedy_no_acumulable_con_backtracking(
             en_camino.remove(salgo)
             if pila:
                 print(f"Regresar: {salgo} -> {pila[-1][0]}")
-                pintar_estado("↩︎ Tablero tras regresar:")
+                pintar_estado("Tablero tras regresar:")
                 print(f"\nEstoy en  {pila[-1][0]}:")
             continue
 
@@ -110,7 +110,7 @@ def greedy_no_acumulable_con_backtracking(
         # Avanzar
         en_camino.add(siguiente)
         pila.append((siguiente, ordenar_vecinos(siguiente)))
-        pintar_estado("→ Tablero tras avanzar:")
+        pintar_estado("Tablero tras avanzar:")
         print(f"\nEstoy en  {siguiente}:")
     return None
 
@@ -185,7 +185,7 @@ while tablero[my][mx] == "X":
 inicio = (sx, sy)
 meta = (mx, my)
 
-camino = greedy_no_acumulable_con_backtracking(tablero, inicio, meta)
+camino = buscar_camino(tablero, inicio, meta)
 
 
 print("\n=== Resultado ===")
