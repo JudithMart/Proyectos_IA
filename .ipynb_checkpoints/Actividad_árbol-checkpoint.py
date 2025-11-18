@@ -6,32 +6,22 @@ from sklearn.metrics import accuracy_score, classification_report
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-import os
-
 # ===============================
 # 1. Cargar dataset
 # ===============================
 data = pd.read_excel("IA.xlsx")
 
 print("Primeras filas del dataset:")
-
-print("data.shape:", data.shape) 
 print(data.head())
 
-print("Archivo leído:", os.path.abspath("IA.xlsx"))
 # ===============================
 # 2. Definir variables
 # ===============================
-X = data[["EDAD", "CICLO_REGULAR", "USO_ANTICONCEPTIVOS", "RELACIONES_ACTIVAS"]]
-y = data["EMBARAZO"]
-
-print("X.shape:", X.shape)
-print("y.shape:", y.shape)
+X = data[['Edad', 'CicloRegular', 'Anticonceptivos', 'ActividadSexual']]
+y = data['Embarazo']
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-print("X.shape:", X.shape)
-print("y.shape:", y.shape)
 # ===============================
 # 3. Entrenar modelo
 # ===============================
