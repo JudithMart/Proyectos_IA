@@ -5,82 +5,84 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import seaborn as sns
 
-# ==========================
-# 1. Cargar dataset
-# ==========================
-data = pd.read_excel("IA.xlsx")
+# Cargar dataset
+
+data = pd.read_excel("IA_3.xlsx")
 print("Tamaño del dataset:", data.shape)
 print(data.head())
 
-# ==========================
-# 2. Seleccionar variables independientes
-# (NO USAR EMBARAZO)
-# ==========================
+
+print("\nConteo EMBARAZO (0=no, 1=sí, 2=posible):")
+print(data["EMBARAZO"].value_counts(dropna=False))
+
+# variables independientes
+
 X = data[["EDAD", "CICLO_REGULAR", "USO_ANTICONCEPTIVOS", "RELACIONES_ACTIVAS"]]
 
-# ==========================
-# 3. Normalizar los datos
-# ==========================
+
+# Escalar datos
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-# ==========================
-# 4. Aplicar modelo de clustering
-# ==========================
-kmeans = KMeans(n_clusters=2, random_state=42)
-clusters = kmeans.fit_predict(X_scaled)
+# Clustering KMeans
 
+kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+clusters = kmeans.fit_predict(X_scaled)
 data["CLUSTER"] = clusters
 
 print("\nConteo por cluster:")
 print(data["CLUSTER"].value_counts())
 
-# ==========================
-# 5. Visualización (2 variables)
-# ==========================
-plt.figure(figsize=(8,5))
-sns.scatterplot(
-    x=data["EDAD"],
-    y=data["RELACIONES_ACTIVAS"],
-    hue=data["CLUSTER"],
-    palette="viridis"
-)
-plt.xlabel("Edad")
-plt.ylabel("Relaciones Activas")
-plt.title("Gráfico de Dispersión Agrupado")
-plt.show()
+#  PCA para visualizar clusters
 
-# ==========================
-# 6. PCA para visualizar clusters en 2D
-# ==========================
-pca = PCA(n_components=2)
+pca = PCA(n_components=2, random_state=42)
 componentes = pca.fit_transform(X_scaled)
 
 data["PC1"] = componentes[:, 0]
 data["PC2"] = componentes[:, 1]
 
-plt.figure(figsize=(8,5))
+plt.figure(figsize=(5,5))
 sns.scatterplot(
-    x=data["PC1"],
-    y=data["PC2"],
-    hue=data["CLUSTER"],
-    palette="coolwarm"
+    x="PC1", y="PC2",
+    hue="CLUSTER",
+    palette="Set1",
+    data=data,
+    s=40,
+    alpha=0.8
 )
-plt.title("Clusters usando PCA")
+plt.title("Clusters usando PCA (KMeans)")
 plt.xlabel("Componente Principal 1")
 plt.ylabel("Componente Principal 2")
+plt.legend(title="Cluster")
+plt.grid(True)
+plt.tight_layout()
 plt.show()
 
-# ==========================
-# 7. Interpretación de clusters
-# ==========================
-print("\nInterpretación de clusters:")
-for i in range(2):
-    print(f"\nCluster {i} promedio:")
-    print(data[data["CLUSTER"] == i].mean())
+# Heatmap EMBARAZO vs CLUSTER
 
-# ==========================
-# 8. Guardar resultados
-# ==========================
-data.to_excel("resultado_clusters.xlsx", index=False)
-print("\nArchivo generado: resultado_clusters.xlsx")
+ct = pd.crosstab(data["EMBARAZO"], data["CLUSTER"])
+print("\nCrosstab EMBARAZO vs CLUSTER:\n", ct)
+
+plt.figure(figsize=(6,4))
+sns.heatmap(ct, annot=True, fmt="d", cmap="Blues")
+plt.xlabel("Cluster (KMeans)")
+plt.ylabel("EMBARAZO (0=no,1=sí,2=posible)")
+plt.title("Mapa de Calor: EMBARAZO vs Clusters Descubiertos")
+plt.tight_layout()
+plt.show()
+
+#  Estadísticas descriptivas por cluster
+
+print("\nPromedio de variables por cluster:")
+print(
+    data.groupby("CLUSTER")[["EDAD","CICLO_REGULAR","USO_ANTICONCEPTIVOS","RELACIONES_ACTIVAS"]]
+    .mean()
+)
+
+print("\nConteos EMBARAZO por cluster:")
+print(pd.crosstab(data["CLUSTER"], data["EMBARAZO"]))
+
+# Guardar resultados
+# # ==========================
+# data.to_excel("resultado_clusters.xlsx", index=False)
+# print("\nArchivo generado: resultado_clusters.xlsx")
